@@ -1,0 +1,56 @@
+buildscript {
+  repositories { jcenter() }
+  dependencies {
+    classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+  }
+}
+
+apply plugin: 'java'
+apply plugin: 'maven' // make pom files for deployment
+apply plugin: 'com.github.johnrengelman.shadow'
+
+group = "org.apache.parquet"
+version = '0.2.0'
+
+javadoc.failOnError = false
+
+repositories {
+  mavenCentral()
+  mavenLocal()
+}
+
+configurations {
+  shadow
+  compile.extendsFrom provided
+  provided.extendsFrom shadow
+}
+
+configurations.all {
+  // Check for updates every build
+  resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+dependencies {
+  shadow 'org.slf4j:slf4j-api:1.7.5'
+  shadow 'org.apache.parquet:parquet-avro:1.9.0'
+  shadow 'net.sf.opencsv:opencsv:2.3'
+  shadow 'org.apache.avro:avro:1.8.0'
+  shadow 'com.fasterxml.jackson.core:jackson-databind:2.3.1'
+  shadow 'com.beust:jcommander:1.35'
+
+  provided 'org.slf4j:slf4j-log4j12:1.7.5'
+  provided 'com.google.guava:guava:11.0.2'
+  provided 'org.apache.hadoop:hadoop-client:2.4.0'
+  testCompile 'junit:junit:4.4'
+}
+
+shadowJar {
+  // Ensure Avro 1.8.1 is used instead of the cluster's Avro.
+  relocate 'org.apache.avro', 'shaded.org.apache.avro'
+  configurations = [project.configurations.shadow]
+  from(project.sourceSets.main.output)
+
+  archiveName = "parquet-cli-${version}.${extension}"
+}
+
+tasks.build.dependsOn tasks.shadowJar
